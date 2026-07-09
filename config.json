@@ -1,0 +1,12 @@
+{
+  "debug_mode": {
+    "type": "boolean",
+    "default": false,
+    "description": "Enable verbose Data Generator admin debug logging"
+  },
+  "cronPreviewCount": {
+    "type": "number",
+    "default": 5,
+    "description": "How many upcoming fire times to preview for a cron expression"
+  }
+}

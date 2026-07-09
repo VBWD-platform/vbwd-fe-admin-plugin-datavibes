@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "dataGenerator": "Data Generator"
+  },
+  "datavibes": {
+    "title": "Data Generator",
+    "tabs": {
+      "profiles": "Datavibes Profiles",
+      "cron": "Profiles Cron Management"
+    },
+    "profiles": {
+      "heading": "Datavibes Profiles",
+      "empty": "No datavibes profiles found.",
+      "loading": "Loading profiles…",
+      "reports": "Reports",
+      "runNow": "Run now",
+      "running": "Running…",
+      "runOk": "Run started for {slug}.",
+      "runFailed": "Run failed for {slug}.",
+      "columns": {
+        "slug": "Slug",
+        "title": "Title",
+        "category": "Category",
+        "latestSnapshot": "Latest snapshot",
+        "rowCount": "Rows",
+        "reports": "Reports",
+        "actions": "Actions"
+      }
+    },
+    "drawer": {
+      "heading": "Profile detail",
+      "config": "Configuration summary",
+      "close": "Close"
+    },
+    "cron": {
+      "heading": "Profiles Cron Management",
+      "empty": "No schedules yet.",
+      "loading": "Loading schedules…",
+      "invalid": "Invalid cron expression.",
+      "save": "Save",
+      "saved": "Schedule saved for {slug}.",
+      "runNow": "Run now",
+      "enabled": "Enabled",
+      "nextRuns": "Next fire times",
+      "columns": {
+        "slug": "Profile",
+        "cron": "Cron expression",
+        "enabled": "Enabled",
+        "lastRun": "Last run",
+        "status": "Status",
+        "nextRun": "Next run",
+        "actions": "Actions"
+      }
+    },
+    "status": {
+      "ok": "OK",
+      "failed": "Failed",
+      "running": "Running",
+      "never": "Never"
+    }
+  }
+}
