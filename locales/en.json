@@ -17,6 +17,22 @@
       "running": "Running…",
       "runOk": "Run started for {slug}.",
       "runFailed": "Run failed for {slug}.",
+      "newProfile": "New profile",
+      "create": "Create profile",
+      "creating": "Creating…",
+      "cancel": "Cancel",
+      "createOk": "Profile {slug} saved.",
+      "createFailed": "Could not save the profile.",
+      "import": "Import",
+      "importOk": "Imported profiles ({created} created, {updated} updated).",
+      "importFailed": "Import failed — check the file is a valid export.",
+      "form": {
+        "slug": "Slug",
+        "title": "Title",
+        "category": "Category",
+        "definition": "Definition (YAML)",
+        "definitionPlaceholder": "metadata:\n  slug: my-dataset\n  title: My Dataset\nschema: []\nsources: []\n"
+      },
       "columns": {
         "slug": "Slug",
         "title": "Title",

@@ -57,6 +57,31 @@ export interface DatavibesScheduleInput {
   enabled: boolean;
 }
 
+/** The body of a create/update-profile request (definition is raw YAML). */
+export interface DatavibesProfileInput {
+  slug: string;
+  title?: string;
+  category?: string;
+  definition?: string;
+}
+
+/** Uniform data-exchange import outcome (mirrors the backend ImportResult). */
+export interface DatavibesImportResult {
+  entity: string;
+  mode: string;
+  dry_run: boolean;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: Array<Record<string, unknown>>;
+}
+
+/** Options for a profile import (mode + dry-run flags). */
+export interface DatavibesImportOptions {
+  mode?: 'upsert' | 'replace_all';
+  dryRun?: boolean;
+}
+
 function asArray<T>(res: unknown, key: string): T[] {
   if (Array.isArray(res)) return res as T[];
   const obj = res as Record<string, unknown> | null;
@@ -78,6 +103,27 @@ export const datavibesApi = {
   async getProfile(slug: string): Promise<DatavibesProfileDetail> {
     const res = await api.get<unknown>(`/admin/datavibes/profiles/${slug}`);
     return unwrapEntity<DatavibesProfileDetail>(res, 'profile');
+  },
+
+  async createProfile(input: DatavibesProfileInput): Promise<DatavibesProfile> {
+    const res = await api.post<unknown>('/admin/datavibes/profiles', {
+      slug: input.slug,
+      title: input.title,
+      category: input.category,
+      definition: input.definition,
+    });
+    return unwrapEntity<DatavibesProfile>(res, 'profile');
+  },
+
+  async importProfiles(
+    envelope: unknown,
+    options: DatavibesImportOptions = {},
+  ): Promise<DatavibesImportResult> {
+    return api.post<DatavibesImportResult>('/admin/data-exchange/datavibes_profile/import', {
+      payload: envelope,
+      mode: options.mode ?? 'upsert',
+      dry_run: options.dryRun ?? false,
+    });
   },
 
   async runProfile(slug: string): Promise<DatavibesRunResult> {

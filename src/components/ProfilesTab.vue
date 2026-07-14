@@ -16,6 +16,91 @@
       {{ statusMessage }}
     </p>
 
+    <div class="datavibes-profiles__toolbar">
+      <button
+        type="button"
+        class="datavibes-btn"
+        data-testid="new-profile-button"
+        @click="toggleCreateForm"
+      >
+        {{ $t('datavibes.profiles.newProfile') }}
+      </button>
+
+      <label
+        class="datavibes-btn datavibes-import-label"
+        data-testid="import-label"
+      >
+        {{ $t('datavibes.profiles.import') }}
+        <input
+          type="file"
+          accept="application/json,.json"
+          class="datavibes-import-input"
+          data-testid="import-file"
+          @change="onImportFile"
+        >
+      </label>
+    </div>
+
+    <form
+      v-if="showCreateForm"
+      class="datavibes-create-form"
+      data-testid="profile-create-form"
+      @submit.prevent="submitCreate"
+    >
+      <label class="datavibes-field">
+        <span>{{ $t('datavibes.profiles.form.slug') }}</span>
+        <input
+          v-model="createForm.slug"
+          type="text"
+          required
+          data-testid="create-slug"
+        >
+      </label>
+      <label class="datavibes-field">
+        <span>{{ $t('datavibes.profiles.form.title') }}</span>
+        <input
+          v-model="createForm.title"
+          type="text"
+          data-testid="create-title"
+        >
+      </label>
+      <label class="datavibes-field">
+        <span>{{ $t('datavibes.profiles.form.category') }}</span>
+        <input
+          v-model="createForm.category"
+          type="text"
+          data-testid="create-category"
+        >
+      </label>
+      <label class="datavibes-field">
+        <span>{{ $t('datavibes.profiles.form.definition') }}</span>
+        <textarea
+          v-model="createForm.definition"
+          rows="8"
+          data-testid="create-definition"
+          :placeholder="$t('datavibes.profiles.form.definitionPlaceholder')"
+        />
+      </label>
+      <div class="datavibes-create-form__actions">
+        <button
+          type="submit"
+          class="datavibes-btn"
+          data-testid="create-submit"
+          :disabled="creating"
+        >
+          {{ creating ? $t('datavibes.profiles.creating') : $t('datavibes.profiles.create') }}
+        </button>
+        <button
+          type="button"
+          class="datavibes-btn"
+          data-testid="create-cancel"
+          @click="showCreateForm = false"
+        >
+          {{ $t('datavibes.profiles.cancel') }}
+        </button>
+      </div>
+    </form>
+
     <p
       v-if="store.loading && !store.profiles.length"
       class="datavibes-profiles__empty"
@@ -133,6 +218,10 @@ const runningSlug = ref<string | null>(null);
 const statusMessage = ref<string>('');
 const drawerProfile = ref<DatavibesProfileDetail | null>(null);
 
+const showCreateForm = ref(false);
+const creating = ref(false);
+const createForm = ref({ slug: '', title: '', category: '', definition: '' });
+
 const drawerConfig = computed(() =>
   drawerProfile.value ? JSON.stringify(drawerProfile.value.config_summary ?? {}, null, 2) : '',
 );
@@ -159,6 +248,54 @@ async function runNow(slug: string): Promise<void> {
 
 async function openDrawer(slug: string): Promise<void> {
   drawerProfile.value = await store.fetchProfile(slug);
+}
+
+function toggleCreateForm(): void {
+  showCreateForm.value = !showCreateForm.value;
+  if (showCreateForm.value) {
+    createForm.value = { slug: '', title: '', category: '', definition: '' };
+  }
+}
+
+async function submitCreate(): Promise<void> {
+  creating.value = true;
+  statusMessage.value = '';
+  try {
+    const definitionBody = createForm.value.definition;
+    const created = await store.createProfile({
+      slug: createForm.value.slug.trim(),
+      title: createForm.value.title.trim() || undefined,
+      category: createForm.value.category.trim() || undefined,
+      // Send the YAML verbatim (trailing newlines can matter); only a
+      // whitespace-only body is treated as "no definition".
+      definition: definitionBody.trim() ? definitionBody : undefined,
+    });
+    statusMessage.value = t('datavibes.profiles.createOk', { slug: created.slug });
+    showCreateForm.value = false;
+  } catch {
+    statusMessage.value = t('datavibes.profiles.createFailed');
+  } finally {
+    creating.value = false;
+  }
+}
+
+async function onImportFile(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  statusMessage.value = '';
+  try {
+    const envelope = JSON.parse(await file.text());
+    const result = await store.importProfiles(envelope);
+    statusMessage.value = t('datavibes.profiles.importOk', {
+      created: result.created,
+      updated: result.updated,
+    });
+  } catch {
+    statusMessage.value = t('datavibes.profiles.importFailed');
+  } finally {
+    input.value = '';
+  }
 }
 
 onMounted(() => store.fetchProfiles());
@@ -201,6 +338,61 @@ onMounted(() => store.fetchProfiles());
 .datavibes-btn:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+.datavibes-profiles__toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.datavibes-import-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.datavibes-import-input {
+  display: none;
+}
+
+.datavibes-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--vbwd-border-color, #e5e7eb);
+  border-radius: 6px;
+  background: var(--vbwd-surface-color, #fafafa);
+}
+
+.datavibes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.datavibes-field span {
+  font-weight: 600;
+}
+
+.datavibes-field input,
+.datavibes-field textarea {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--vbwd-border-color, #d1d5db);
+  border-radius: 4px;
+  background: var(--vbwd-surface-color, #ffffff);
+  font-family: inherit;
+}
+
+.datavibes-field textarea {
+  font-family: var(--vbwd-font-mono, monospace);
+  white-space: pre;
+}
+
+.datavibes-create-form__actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .datavibes-profiles__error {

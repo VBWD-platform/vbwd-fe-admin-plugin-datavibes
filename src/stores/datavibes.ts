@@ -9,8 +9,11 @@
 import { defineStore } from 'pinia';
 import {
   datavibesApi,
+  type DatavibesImportOptions,
+  type DatavibesImportResult,
   type DatavibesProfile,
   type DatavibesProfileDetail,
+  type DatavibesProfileInput,
   type DatavibesRunResult,
   type DatavibesSchedule,
   type DatavibesScheduleInput,
@@ -64,6 +67,21 @@ export const useDatavibesStore = defineStore('datavibes-admin', {
 
     async runProfile(slug: string): Promise<DatavibesRunResult> {
       return datavibesApi.runProfile(slug);
+    },
+
+    async createProfile(input: DatavibesProfileInput): Promise<DatavibesProfile> {
+      const created = await datavibesApi.createProfile(input);
+      await this.fetchProfiles();
+      return created;
+    },
+
+    async importProfiles(
+      envelope: unknown,
+      options?: DatavibesImportOptions,
+    ): Promise<DatavibesImportResult> {
+      const result = await datavibesApi.importProfiles(envelope, options);
+      await this.fetchProfiles();
+      return result;
     },
 
     // ── Schedules ───────────────────────────────────────────────────────────────
