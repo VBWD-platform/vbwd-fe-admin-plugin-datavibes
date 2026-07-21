@@ -16,6 +16,22 @@
       {{ statusMessage }}
     </p>
 
+    <div
+      v-if="store.failedProfiles.length"
+      class="datavibes-profiles__warning"
+      data-testid="profiles-failed"
+    >
+      <strong>{{ $t('datavibes.profiles.failedHeading', { count: store.failedProfiles.length }) }}</strong>
+      <ul>
+        <li
+          v-for="failure in store.failedProfiles"
+          :key="failure.slug"
+        >
+          <code>{{ failure.slug }}</code> — {{ failure.error }}
+        </li>
+      </ul>
+    </div>
+
     <div class="datavibes-profiles__toolbar">
       <button
         type="button"
@@ -69,6 +85,7 @@
         <input
           v-model="createForm.category"
           type="text"
+          required
           data-testid="create-category"
         >
       </label>
@@ -209,6 +226,7 @@
 import { onMounted, ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useDatavibesStore } from '../stores/datavibes';
+import { missingDefinitionBlocks } from '../utils/profileDefinition';
 import type { DatavibesProfileDetail } from '../api/datavibes';
 
 const store = useDatavibesStore();
@@ -250,16 +268,46 @@ async function openDrawer(slug: string): Promise<void> {
   drawerProfile.value = await store.fetchProfile(slug);
 }
 
+/**
+ * A definition datavibes can load, used to seed the editor. Starting the
+ * operator from a valid skeleton (rather than an empty box) is the cheapest way
+ * to stop another metadata-only profile being created.
+ */
+const STARTER_DEFINITION = [
+  'schema:',
+  '  - name: value',
+  '    dtype: float',
+  'sources:',
+  '  - type: static',
+  '    rows: []',
+  '',
+].join('\n');
+
 function toggleCreateForm(): void {
   showCreateForm.value = !showCreateForm.value;
   if (showCreateForm.value) {
-    createForm.value = { slug: '', title: '', category: '', definition: '' };
+    createForm.value = {
+      slug: '',
+      title: '',
+      category: '',
+      definition: STARTER_DEFINITION,
+    };
   }
 }
 
 async function submitCreate(): Promise<void> {
-  creating.value = true;
   statusMessage.value = '';
+  // Refuse the metadata-only body that datavibes cannot load — creating it once
+  // bricked the whole profile list. The backend validates authoritatively too.
+  const missingBlocks = missingDefinitionBlocks(createForm.value.definition);
+  if (missingBlocks.length) {
+    statusMessage.value = t('datavibes.profiles.missingBlocks', {
+      blocks: missingBlocks.join(', '),
+    });
+    return;
+  }
+
+  creating.value = true;
   try {
     const definitionBody = createForm.value.definition;
     const created = await store.createProfile({
@@ -272,11 +320,20 @@ async function submitCreate(): Promise<void> {
     });
     statusMessage.value = t('datavibes.profiles.createOk', { slug: created.slug });
     showCreateForm.value = false;
-  } catch {
-    statusMessage.value = t('datavibes.profiles.createFailed');
+  } catch (caught) {
+    // Surface the backend's own validation text (e.g. "'schema' must be a
+    // non-empty list") instead of a generic failure the operator cannot act on.
+    statusMessage.value = backendMessage(caught) || t('datavibes.profiles.createFailed');
   } finally {
     creating.value = false;
   }
+}
+
+/** Pull the API's structured `error` (or its message) off a rejected call. */
+function backendMessage(caught: unknown): string {
+  const structured = (caught as { data?: { error?: string } } | null)?.data?.error;
+  if (structured) return structured;
+  return caught instanceof Error ? caught.message : '';
 }
 
 async function onImportFile(event: Event): Promise<void> {
@@ -291,8 +348,8 @@ async function onImportFile(event: Event): Promise<void> {
       created: result.created,
       updated: result.updated,
     });
-  } catch {
-    statusMessage.value = t('datavibes.profiles.importFailed');
+  } catch (caught) {
+    statusMessage.value = backendMessage(caught) || t('datavibes.profiles.importFailed');
   } finally {
     input.value = '';
   }
@@ -409,6 +466,19 @@ onMounted(() => store.fetchProfiles());
   padding: 0.6rem 1rem;
   border-radius: 4px;
   margin-bottom: 1rem;
+}
+
+.datavibes-profiles__warning {
+  background: #fffbeb;
+  color: #92400e;
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.datavibes-profiles__warning ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
 }
 
 .datavibes-drawer {

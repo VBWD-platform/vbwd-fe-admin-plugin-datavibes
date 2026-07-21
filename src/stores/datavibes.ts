@@ -14,6 +14,7 @@ import {
   type DatavibesProfile,
   type DatavibesProfileDetail,
   type DatavibesProfileInput,
+  type DatavibesProfileLoadFailure,
   type DatavibesRunResult,
   type DatavibesSchedule,
   type DatavibesScheduleInput,
@@ -21,6 +22,8 @@ import {
 
 interface DatavibesStoreState {
   profiles: DatavibesProfile[];
+  /** Profiles the backend could not load (a malformed dataset.yaml). */
+  failedProfiles: DatavibesProfileLoadFailure[];
   currentProfile: DatavibesProfileDetail | null;
   schedules: DatavibesSchedule[];
   loading: boolean;
@@ -34,6 +37,7 @@ function toMessage(caught: unknown): string {
 export const useDatavibesStore = defineStore('datavibes-admin', {
   state: (): DatavibesStoreState => ({
     profiles: [],
+    failedProfiles: [],
     currentProfile: null,
     schedules: [],
     loading: false,
@@ -46,7 +50,9 @@ export const useDatavibesStore = defineStore('datavibes-admin', {
       this.loading = true;
       this.error = null;
       try {
-        this.profiles = await datavibesApi.listProfiles();
+        const listing = await datavibesApi.listProfiles();
+        this.profiles = listing.profiles;
+        this.failedProfiles = listing.failed;
       } catch (caught) {
         this.error = toMessage(caught);
       } finally {

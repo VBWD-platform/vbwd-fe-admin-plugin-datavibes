@@ -30,6 +30,18 @@ export interface DatavibesProfileDetail extends DatavibesProfile {
   config_summary: Record<string, unknown>;
 }
 
+/** A profile whose dataset.yaml the backend could not load, and why. */
+export interface DatavibesProfileLoadFailure {
+  slug: string;
+  error: string;
+}
+
+/** The profiles listing: the healthy rows plus the ones that failed to load. */
+export interface DatavibesProfileListing {
+  profiles: DatavibesProfile[];
+  failed: DatavibesProfileLoadFailure[];
+}
+
 /** The snapshot reference returned by a run. */
 export interface DatavibesRunResult {
   snapshot_id: string;
@@ -89,15 +101,25 @@ function asArray<T>(res: unknown, key: string): T[] {
   return Array.isArray(list) ? (list as T[]) : [];
 }
 
+/** Read `key` as an array, with NO `items` fallback (unlike `asArray`). */
+function asListOf<T>(res: unknown, key: string): T[] {
+  const list = (res as Record<string, unknown> | null)?.[key];
+  return Array.isArray(list) ? (list as T[]) : [];
+}
+
 function unwrapEntity<T>(res: unknown, key: string): T {
   const obj = res as Record<string, unknown> | null;
   return (obj && key in obj ? obj[key] : res) as T;
 }
 
 export const datavibesApi = {
-  async listProfiles(): Promise<DatavibesProfile[]> {
+  async listProfiles(): Promise<DatavibesProfileListing> {
     const res = await api.get<unknown>('/admin/datavibes/profiles');
-    return asArray<DatavibesProfile>(res, 'profiles');
+    return {
+      profiles: asArray<DatavibesProfile>(res, 'profiles'),
+      // A malformed dataset.yaml is reported here instead of 500-ing the list.
+      failed: asListOf<DatavibesProfileLoadFailure>(res, 'failed'),
+    };
   },
 
   async getProfile(slug: string): Promise<DatavibesProfileDetail> {

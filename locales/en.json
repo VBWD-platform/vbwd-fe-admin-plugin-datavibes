@@ -26,12 +26,14 @@
       "import": "Import",
       "importOk": "Imported profiles ({created} created, {updated} updated).",
       "importFailed": "Import failed — check the file is a valid export.",
+      "missingBlocks": "The definition needs a non-empty {blocks} block — datavibes cannot load a profile without it.",
+      "failedHeading": "{count} profile(s) could not be loaded and are hidden:",
       "form": {
         "slug": "Slug",
         "title": "Title",
         "category": "Category",
         "definition": "Definition (YAML)",
-        "definitionPlaceholder": "metadata:\n  slug: my-dataset\n  title: My Dataset\nschema: []\nsources: []\n"
+        "definitionPlaceholder": "metadata:\n  slug: my-dataset\n  title: My Dataset\n  category: my-category\nschema:\n  - name: value\n    dtype: float\nsources:\n  - type: static\n    rows: []\n"
       },
       "columns": {
         "slug": "Slug",
